@@ -69,7 +69,7 @@ func main() {
 				return
 			case <-tk.C:
 				w := p.Stats.Written.Load()
-				log.Printf("written/s=%d total=%d dropped=%d failed=%d decodeErr=%d queue=%d",
+				log.Printf("written/s=%d total=%d recv=%d dropped=%d failed=%d decodeErr=%d queue=%d",
 					w-last, w, p.Stats.Received.Load(), p.Stats.Dropped.Load(),
 					p.Stats.Failed.Load(), p.Stats.DecodeErr.Load(), p.QueueDepth())
 
