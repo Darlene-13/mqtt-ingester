@@ -47,6 +47,6 @@ func (s *rowSource) Values() ([]any, error) {
 
 func (w *Writer) Write(ctx context.Context, rows []model.Reading) (int64, error) {
 	src := &rowSource{rows: rows, vals: make([]any, len(cols))}
-	return w.Pool.CopyFrom(ctx, pgx.Identifier{"sensors"}, cols, src)
+	return w.Pool.CopyFrom(ctx, pgx.Identifier{"telemetry"}, cols, src)
 
 }
