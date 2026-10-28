@@ -25,6 +25,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), *dur)
 	defer cancel()
 
+	//atomic to allow safe concurrent writes
 	var sent, failed atomic.Uint64
 	lats := make([][]time.Duration, *devices)
 	interval := time.Duration(float64(time.Second) / *hz)
