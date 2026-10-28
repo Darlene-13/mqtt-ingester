@@ -28,7 +28,7 @@ type Reading struct {
 	Speed    float32
 }
 
-// Wire layout
+// Dictates byte ordering (endianness)
 var le = binary.LittleEndian
 
 func f32(b []byte) float32 {
