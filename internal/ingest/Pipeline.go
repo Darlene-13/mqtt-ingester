@@ -110,13 +110,14 @@ func (p *Pipeline) worker() {
 func (p *Pipeline) writeWithRetry(batch []model.Reading) {
 	n := uint64(len(batch))
 	backoff := 100 * time.Millisecond
+	// We allow a tota or 3 re-writes attempts
 	for attempt := range 4 {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_, err := p.w.Write(ctx, batch)
+		rowsWritten, err := p.w.Write(ctx, batch)
 		cancel()
 
 		if err == nil {
-			p.Stats.Written.Add(1)
+			p.Stats.Written.Add(uint64(rowsWritten))
 			return
 		}
 
