@@ -58,6 +58,7 @@ func main() {
 				Lon:      36.8219 + rng.Float64()*0.01,
 				Alt:      1795,
 			}
+
 			topic := fmt.Sprintf("telemetry/%d/data", id)
 			local := make([]time.Duration, 0, int(dur.Seconds()**hz)+16)
 			tk := time.NewTicker(interval)

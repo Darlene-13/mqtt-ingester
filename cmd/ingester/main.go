@@ -38,7 +38,10 @@ func main() {
 	p := ingest.New(cfg, &store.Writer{Pool: pool})
 	p.Start()
 
-	const topic = "$share/ingest/telemetry/+/data"
+	topic := os.Getenv("MQTT_TOPIC")
+	if topic == "" {
+		topic = "telemetry/+/data"
+	}
 	opts := mqtt.NewClientOptions().
 		AddBroker(os.Getenv("MQTT_BROKER")).
 		SetClientID(os.Getenv("MQTT_CLIENT_ID")).
