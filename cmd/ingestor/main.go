@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Darlene-13/mqtt-ingester/internal/ingest"
 	"github.com/Darlene-13/mqtt-ingester/internal/store"
@@ -59,6 +62,23 @@ func main() {
 		log.Fatal(t.Error())
 	}
 
+	registerMetrics(p, cfg.QueueSize)
+
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if !client.IsConnectionOpen() {
+			http.Error(w, "mqtt disconnected", http.StatusServiceUnavailable)
+			return
+		}
+		if err := pool.Ping(r.Context()); err != nil {
+			http.Error(w, "db unreachable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Write([]byte("ok"))
+	})
+	go func() { log.Println(http.ListenAndServe(":9090", mux)) }()
+
 	go func() {
 		tk := time.NewTicker(time.Second)
 		defer tk.Stop()
@@ -77,7 +97,7 @@ func main() {
 			}
 		}
 	}()
-
+	log.Println(http.ListenAndServe("localhost:6060", nil))
 	<-ctx.Done()
 	client.Disconnect(500)
 	p.Stop()
