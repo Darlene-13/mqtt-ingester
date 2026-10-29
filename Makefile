@@ -58,3 +58,6 @@ test:
 
 bench:
 	go test -bench=. -benchmem ./internal/model
+
+profile:
+	go tool pprof -http=:8081 "http://localhost:6060/debug/pprof/profile?seconds=30"
