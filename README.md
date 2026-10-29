@@ -174,6 +174,7 @@ Latitude and longitude are float64 because float32 loses about a metre of precis
 On the ESP32 side this maps to a packed C struct, so no serialization library is needed.
 
 ## Database schema
+**Note on Database Choice:** While there are other databases purpose-built for time-series workloads, I chose TimescaleDB for this project because of my familiarity with PostgreSQL. TimescaleDB is a PostgreSQL extension that adds time-series capabilities while retaining the underlying PostgreSQL ecosystem. This allowed me to build on what I already knew while exploring time-series data ingestion.
 
 TimescaleDB hypertable `telemetry`, chunked by day.
 
