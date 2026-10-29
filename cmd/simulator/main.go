@@ -26,7 +26,7 @@ func main() {
 	defer cancel()
 
 	//atomic to allow safe concurrent writes
-	var sent, failed atomic.Uint64
+	var sent, failed, connFailed atomic.Uint64
 	lats := make([][]time.Duration, *devices)
 	interval := time.Duration(float64(time.Second) / *hz)
 
@@ -40,7 +40,7 @@ func main() {
 				SetClientID(fmt.Sprintf("sim-%d", id))
 			c := mqtt.NewClient(opts)
 			if t := c.Connect(); t.Wait() && t.Error() != nil {
-				failed.Add(1)
+				connFailed.Add(1)
 				return
 			}
 			defer c.Disconnect(250)
@@ -111,8 +111,8 @@ func main() {
 		}
 		return all[int(float64(len(all)-1)*p)]
 	}
-	fmt.Printf("sent=%d failed=%d elapsed=%s rate=%.1f msg/s\n",
-		sent.Load(), failed.Load(), elapsed.Round(time.Millisecond),
+	fmt.Printf("sent=%d failed=%d connect_failed=%d elapsed=%s rate=%.1f msg/s\n",
+		sent.Load(), failed.Load(), connFailed.Load(), elapsed.Round(time.Millisecond),
 		float64(sent.Load())/elapsed.Seconds())
 	fmt.Printf("ack latency p50=%s p95=%s p99=%s max=%s\n",
 		pct(.50), pct(.95), pct(.99), pct(1))
