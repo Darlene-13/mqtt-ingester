@@ -44,7 +44,7 @@ func Decode(b []byte, r *Reading) error {
 	}
 
 	r.DeviceID = le.Uint32(b[0:])
-	r.TsMicro = int64(le.Uint32(b[4:]))
+	r.TsMicro = int64(le.Uint64(b[4:]))
 	r.Temp, r.Hum = f32(b[12:]), f32(b[16:])
 	r.AccX, r.AccY, r.AccZ = f32(b[20:]), f32(b[24:]), f32(b[28:])
 	r.GyroX, r.GyroY, r.GyroZ = f32(b[32:]), f32(b[36:]), f32(b[40:])
