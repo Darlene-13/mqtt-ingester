@@ -26,12 +26,26 @@ run:
 
 sim:
 	go run ./cmd/simulator -devices 100 -hz 1 -duration 60s
-
 sim-1k:
 	go run ./cmd/simulator -devices 100 -hz 10 -duration 60s
 
 sim-5k:
 	go run ./cmd/simulator -devices 500 -hz 10 -duration 60s
+
+sim-10k:
+	go run ./cmd/simulator -devices 1000 -hz 10 -duration 60s
+
+sim-25k:
+	go run ./cmd/simulator -devices 2500 -hz 10 -duration 60s
+
+sim-50k:
+	go run ./cmd/simulator -devices 5000 -hz 10 -duration 60s
+
+sim-75k:
+	go run ./cmd/simulator -devices 7500 -hz 10 -duration 60s
+
+sim-100k:
+	go run ./cmd/simulator -devices 10000 -hz 10 -duration 60s
 
 count:
 	$(PSQL) -c "SELECT count(*) AS rows FROM telemetry;"
