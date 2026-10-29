@@ -204,41 +204,33 @@ The simulator runs N devices, each with its own MQTT connection, publishing at a
 
 ## Benchmark results
 
-Environment: single Linux laptop running the ingestor, simulator, Mosquitto and TimescaleDB together (Docker for the last two). Config: 4 workers, batch 500, flush 250 ms, queue 4096. Results are relative, not absolute, because everything shares one machine.
+Environment: one Linux laptop (Arch) running the ingestor, the simulator, Mosquitto and TimescaleDB together, the last two in Docker. Config: 4 workers, batch 500, flush 250 ms, queue 4096, QoS 1. Everything shares one machine, so treat the numbers as relative, not absolute.
 
-### Publisher side (simulator)
+### Verified runs
 
-| Target (msg/s) | Devices | Sent | Achieved (msg/s) | Connect failures | PUBACK p50 | p95 | p99 | max |
-|---|---|---|---|---|---|---|---|---|
-| 100 | 100 | 5,897 | 98.3 | 0 | 290 µs | 582 µs | 1.19 ms | 3.7 ms |
-| 1,000 | 100 | 59,889 | 998.1 | 0 | 207 µs | 354 µs | 622 µs | 6.3 ms |
-| 5,000 | 500 | 299,172 | 4,983.2 | 0 | 555 µs | 1.67 ms | 3.48 ms | 27.6 ms |
-| 10,000 | 1,000 | 597,174 | 9,947.2 | 0 | 1.34 ms | 9.32 ms | 24.3 ms | 164 ms |
-| 25,000* | 2,500 | 606,966 | 10,109.4 | 1,484 | 398 µs | 1.41 ms | 4.32 ms | 129 ms |
-| 50,000* | 5,000 | 604,984 | 10,073.2 | 3,984 | 399 µs | 1.27 ms | 4.83 ms | 425 ms |
-| 75,000* | 7,500 | 577,347 | 9,606.6 | 6,484 | 2.18 ms | 13.8 ms | 62.1 ms | 2.9 s |
-| 100,000* | 10,000 | 554,317 | 9,232.3 | 8,984 | 575 µs | 11.8 ms | 95.9 ms | 3.6 s |
+| Target (msg/s) | Devices | Sent | Rows written | Achieved (msg/s) | Dropped | Failed | PUBACK p50 | p95 | p99 | max |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 100 | 100 | 5,897 | 5,897 | 98.3 | 0 | 0 | 290 µs | 582 µs | 1.19 ms | 3.7 ms |
+| 1,000 | 100 | 59,889 | 59,889 | 998.1 | 0 | 0 | 207 µs | 354 µs | 622 µs | 6.3 ms |
+| 5,000 | 500 | 299,172 | 299,172 | 4,983.2 | 0 | 0 | 555 µs | 1.67 ms | 3.48 ms | 27.6 ms |
+| 10,000 | 1,000 | 597,174 | 597,174 | 9,947.2 | 0 | 0 | 1.34 ms | 9.32 ms | 24.3 ms | 164 ms |
 
-\* Simulator limited. The shell's open-file limit (1024) capped connections at 1,016, so these runs never reached their target rate. The ingestor was not the bottleneck.
+In every run, rows written in the database equaled messages sent, with no drops, no failed batches and no decode errors. The queue depth stayed at or near 0 (peak 20 at 5,000 msg/s).
 
-### Ingestor side
+### Invalid runs (not a result)
 
-| Run | Rows written | Matches sent | Dropped | Failed | Decode errors | Peak written/s | Max queue depth |
-|---|---|---|---|---|---|---|---|
-| 100 msg/s | 5,897 | Yes | 0 | 0 | 0 | 101 | 0 |
-| 1,000 msg/s | 59,889 | Yes | 0 | 0 | 0 | 1,183 | 3 |
-| 5,000 msg/s | 299,172 | Yes | 0 | 0 | 0 | 5,005 | 20 |
-| 10,000 msg/s | 597,174 | Yes | 0 | 0 | 0 | 10,810 | 0 |
-| 25k run* | 606,966 | Yes | 0 | 0 | 0 | 11,000 | 0 |
-| 50k run* | 604,984 | Yes | 0 | 0 | 0 | 10,500 | 0 |
-| 75k run* | 577,347 | Yes | 0 | 0 | 0 | 13,000 | 0 |
-| 100k run* | 554,317 | Yes | 0 | 0 | 0 | 22,000 (burst) | 0 |
+Attempts at 25k, 50k, 75k and 100k msg/s did not reach their targets. In each, exactly 1,016 clients connected and every other connection was refused, because the Mosquitto container hit its file-descriptor limit (its log shows "system socket count has been exceeded"). Those runs therefore only exercised about 1,016 devices at 10 Hz, which is why throughput plateaued near 10k msg/s. They say nothing about the ingestor's ceiling, so they are excluded from the table above.
 
 ### Takeaways
 
-- The 100 msg/s target is met with roughly 100x headroom: zero drops, zero failures, zero loss across about 3.8M messages.
-- Sustained throughput was verified up to about 10,000 msg/s with the queue staying at or near 0. A burst of 22,000 rows/s was absorbed with no drops.
-- The true ingestor ceiling has not been found yet. Higher runs were limited by simulator connections, not by the ingestor.
+- The 100 msg/s target is met with about 100x headroom and no data loss across roughly 960k messages in the verified runs.
+- Sustained throughput is verified up to about 10,000 msg/s, with the pipeline keeping up and the queue near empty.
+- The ingestor's true ceiling is not yet measured. The limit found was the single-broker connection count in this local setup.
 - Written/s moves in steps of 500 at high rates because rows are counted when each 500-row batch commits.
 
+### Known limitations and next steps
 
+- Raise Mosquitto's file-descriptor limit (`ulimits.nofile` in `docker-compose.yml`) and `max_connections` to test past 10k msg/s.
+- Past roughly 28k connections from one machine, local ports run out. Use fewer connections that each publish for many virtual devices instead.
+- Run the simulator on a separate machine from the broker and database for cleaner numbers.
+- Profile the ingestor with pprof during a high-rate run to find the real bottleneck.
